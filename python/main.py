@@ -3,9 +3,9 @@
 Nobitex OHLC data fetcher.
 
 Usage:
-    python main.py -symbol BTCIRT -timeframe 4h -candles 35
+    python main.py -symbol BTCIRT -timeframe 4h -candles 35 [-output /path/to/dir]
 
-Exports JSON as list of candle objects.
+Exports JSON as list of candle objects (time in milliseconds).
 """
 
 import argparse
@@ -13,6 +13,7 @@ import json
 import requests
 import datetime
 import sys
+import os
 
 # ---------- Reliable Jalali (Solar Hijri) conversion ----------
 def gregorian_to_jalali(gy, gm, gd):
@@ -64,6 +65,7 @@ def parse_args():
     parser.add_argument('-symbol', required=True, help='Trading symbol, e.g., BTCIRT, BTCUSDT')
     parser.add_argument('-timeframe', required=True, help='Timeframe: 1m,5m,15m,30m,1h,3h,4h,6h,12h,D,2D,3D')
     parser.add_argument('-candles', required=True, type=int, help='Number of candles (max 500)')
+    parser.add_argument('-output', help='Output directory path (default: current directory)')
     return parser.parse_args()
 
 # ---------- Map timeframe ----------
@@ -140,11 +142,11 @@ def main():
         print("Error: Inconsistent data lengths.", file=sys.stderr)
         sys.exit(1)
 
-    # Build list of candle objects
+    # Build list of candle objects with time in milliseconds
     candles_list = []
     for i in range(length):
         candle = {
-            "time": t_list[i] * 1000,          # convert seconds → milliseconds
+            "time": t_list[i] * 1000,          # seconds → milliseconds
             "open": o_list[i],
             "high": h_list[i],
             "low": l_list[i],
@@ -160,10 +162,21 @@ def main():
     jtime_str = now.strftime("%H-%M-%S")            # e.g., 17-48-27
     filename = f"{symbol}-{jdate_str}-{jtime_str}.json"
 
+    # Determine output directory
+    output_dir = args.output if args.output else '.'
+    # Create directory if it doesn't exist
     try:
-        with open(filename, 'w', encoding='utf-8') as f:
+        os.makedirs(output_dir, exist_ok=True)
+    except OSError as e:
+        print(f"Error creating output directory '{output_dir}': {e}", file=sys.stderr)
+        sys.exit(1)
+
+    full_path = os.path.join(output_dir, filename)
+
+    try:
+        with open(full_path, 'w', encoding='utf-8') as f:
             json.dump(candles_list, f, indent=2, ensure_ascii=False)
-        print(f"Data exported to {filename}")
+        print(f"Data exported to {full_path}")
     except IOError as e:
         print(f"Error writing file: {e}", file=sys.stderr)
         sys.exit(1)
