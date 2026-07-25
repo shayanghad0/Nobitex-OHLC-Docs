@@ -28,7 +28,7 @@ BLUE = "#58a6ff"
 ORANGE = "#d29922"
 PURPLE = "#bc8cff"
 TEAL = "#39d353"
-CYAN = "#00d4aa"
+CYAN = "#00d4aa"      # aqua/cyan
 
 
 def supertrend(df, length=10, multiplier=1.0):
@@ -202,7 +202,7 @@ def export_candles(json_file, output_file="chart.png"):
 
     rsi_70 = pd.Series([70] * len(df), index=df.index)
     rsi_30 = pd.Series([30] * len(df), index=df.index)
-    rsi_50 = pd.Series([50] * len(df), index=df.index)   # middle line
+    rsi_50 = pd.Series([50] * len(df), index=df.index)   # middle line - aqua
 
     # Volume bars: colors based on close > open
     vol_colors = [GREEN if df['Close'].iloc[i] > df['Open'].iloc[i] else RED for i in range(len(df))]
@@ -210,7 +210,7 @@ def export_candles(json_file, output_file="chart.png"):
     # Build addplots with panel assignments:
     # panel 1 = RSI, panel 2 = MACD, panel 3 = Volume
     raw_ap = [
-        # Supertrend lines on main panel (panel 0) - they are automatically added to main by default
+        # Supertrend lines on main panel (panel 0)
         (s1u, dict(color=GREEN, width=2.5, panel=0)),
         (s1d, dict(color=RED, width=2.5, panel=0)),
         (s2u, dict(color=GREEN, width=1.5, linestyle="--", panel=0)),
@@ -225,7 +225,7 @@ def export_candles(json_file, output_file="chart.png"):
         (rv, dict(color=PURPLE, width=1.8, panel=1, ylabel="RSI")),
         (rsi_70, dict(color="#555555", width=0.8, linestyle="--", panel=1)),
         (rsi_30, dict(color="#555555", width=0.8, linestyle="--", panel=1)),
-        (rsi_50, dict(color="#777777", width=0.8, linestyle="-", panel=1)),  # middle line
+        (rsi_50, dict(color=CYAN, width=0.8, linestyle="-", panel=1)),  # aqua middle line
         # MACD panel (2)
         (macd_hist, dict(type="bar", color=[GREEN if v >= 0 else RED for v in macd_hist], panel=2, ylabel="MACD", width=0.7)),
         (macd_line, dict(color=BLUE, width=1.2, panel=2)),
