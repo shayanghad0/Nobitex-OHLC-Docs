@@ -138,6 +138,18 @@ def smart_money(df, swing_length=5):
             "lsh": lsh, "lsl": lsl, "shi": shi, "sli": sli}
 
 
+def format_price(x, p):
+    """Format y-axis tick labels without scientific notation."""
+    if x >= 1e9:
+        return f'{x:,.0f}'
+    elif x >= 1e6:
+        return f'{x:,.0f}'
+    elif x >= 1e3:
+        return f'{x:,.0f}'
+    else:
+        return f'{x:,.2f}'
+
+
 def export_candles(json_file, output_file="chart.png"):
     with open(json_file, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -216,6 +228,14 @@ def export_candles(json_file, output_file="chart.png"):
     fig, axes = mpf.plot(df, type="candle", style=style, volume=True, addplot=ap, figsize=(26, 22), panel_ratios=(5, 1.2, 1.5, 1.5), tight_layout=True, xrotation=0, returnfig=True)
     for a in axes: a.set_facecolor(BG)
     ax = axes[0]
+
+    # Fix price axis: disable scientific notation and format numbers
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(format_price))
+    # Set a sensible ylabel
+    ax.set_ylabel("Price", color=TEXT, fontsize=10)
+
+    # Volume axis formatting
+    axes[1].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}' if x >= 1e3 else f'{x:,.2f}'))
 
     # Structure lines
     for i in range(len(df)):
