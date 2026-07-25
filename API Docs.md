@@ -59,3 +59,129 @@ l	کمترین قیمت	[ ] float	[150551000]
 c	قیمت پایانی	[ ] float	[157000000]
 v	حجم معاملات	[ ] float	[9.8592626506]
 در هر درخواست حداکثر 500 کندل بازگردانده می‌شود. برای بازیابی همه کندل‌های یک بازه با بیش از 500 کندل، از پارامتر page برای صفحه‌بندی استفاده نمایید.
+
+
+
+NEW API Mode
+
+دریافت داده‌های OHLC
+GET
+https://apiv2.nobitex.ir/market/udf/history
+داده‌های کندل (Open, High, Low, Close, Volume) را در قالب سازگار با TradingView UDF برمی‌گرداند.
+
+در هر درخواست حداکثر ۵۰۰ کندل برگردانده می‌شود. برای بازه‌های بزرگ‌تر از پارامتر page استفاده کنید. کندل‌های دقیقه‌ای از آغاز سال ۱۴۰۱ در دسترس هستند.
+
+این API عمومی است و به توکن نیاز ندارد. محدودیت فراخوانی آن ۶۰ درخواست در دقیقه است.
+
+Request
+Query Parameters
+symbol
+string
+required
+نماد بازار، مانند BTCIRT یا BTCUSDT.
+
+Example: BTCIRT
+resolution
+string
+required
+Possible values: [1, 5, 15, 30, 60, 180, 240, 360, 720, D, 1D, 2D, 3D]
+
+تایم‌فریم کندل: 1، 5، 15 و 30 دقیقه؛ 60، 180، 240، 360 و 720 دقیقه؛ و D یا 1D، 2D و 3D روز.
+
+Example: D
+from
+int64
+زمان شروع به صورت timestamp ثانیه.
+
+Example: 1562058167
+to
+int64
+required
+زمان پایان به صورت timestamp ثانیه.
+
+Example: 1562230967
+countback
+integer
+تعداد کندل‌های درخواستی پیش از زمان to. در صورت ارسال، بر پارامتر from اولویت دارد و مقادیر بزرگ‌تر از ۵۰۰ به ۵۰۰ محدود می‌شوند.
+
+Example: 4
+page
+integer
+شماره صفحه برای دریافت دسته‌های قدیمی‌تر کندل‌ها.
+
+Default value: 1
+Example: 3
+Header Parameters
+User-Agent
+string
+برای شناسایی بات، این هدر را در همه درخواست‌های HTTP بات با الگوی TraderBot/<name-and-version> ارسال کنید. این هدر هنگام ورود خودکار با captcha=api الزامی و در سایر فراخوانی‌های بات اکیداً توصیه می‌شود.
+
+Example: TraderBot/MyBot-1.0.0
+Responses
+200
+400
+موفق، بدون داده یا خطای UDF
+
+application/json
+Schema
+Example (auto)
+success
+noData
+invalidResolution
+Schema
+s
+string
+Possible values: [ok, no_data, error]
+
+Example:
+ok
+t
+int64[]
+Possible values: <= 500
+
+o
+number[]
+Possible values: <= 500
+
+h
+number[]
+Possible values: <= 500
+
+l
+number[]
+Possible values: <= 500
+
+c
+number[]
+Possible values: <= 500
+
+v
+number[]
+Possible values: <= 500
+
+errmsg
+string
+پیام خطا در حالت s=error.
+
+python
+curl
+go
+java
+javascript
+HTTP.CLIENT
+REQUESTS
+import requests
+
+url = "https://apiv2.nobitex.ir/market/udf/history?symbol=symbol&resolution=720&to=10"
+
+payload = {}
+headers = {
+  'Accept': 'application/json'
+}
+
+response = requests.request("GET", url, headers=headers, data=payload)
+
+print(response.text)
+
+
+
