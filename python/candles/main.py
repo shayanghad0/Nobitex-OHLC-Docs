@@ -202,40 +202,54 @@ def export_candles(json_file, output_file="chart.png"):
 
     rsi_70 = pd.Series([70] * len(df), index=df.index)
     rsi_30 = pd.Series([30] * len(df), index=df.index)
+    rsi_50 = pd.Series([50] * len(df), index=df.index)   # middle line
 
+    # Volume bars: colors based on close > open
+    vol_colors = [GREEN if df['Close'].iloc[i] > df['Open'].iloc[i] else RED for i in range(len(df))]
+
+    # Build addplots with panel assignments:
+    # panel 1 = RSI, panel 2 = MACD, panel 3 = Volume
     raw_ap = [
-        (s1u, dict(color=GREEN, width=2.5)),
-        (s1d, dict(color=RED, width=2.5)),
-        (s2u, dict(color=GREEN, width=1.5, linestyle="--")),
-        (s2d, dict(color=RED, width=1.5, linestyle="--")),
-        (s3u, dict(color=GREEN, width=1, linestyle=":")),
-        (s3d, dict(color=RED, width=1, linestyle=":")),
-        (pln, dict(color=BLUE, width=1.8, linestyle="--")),
-        (pll, dict(color=ORANGE, width=1.8, linestyle="--")),
-        (ph, dict(type="scatter", marker="v", markersize=50, color=RED)),
-        (pl, dict(type="scatter", marker="^", markersize=50, color=GREEN)),
-        (rv, dict(color=PURPLE, width=1.8, panel=2, ylabel="RSI")),
-        (rsi_70, dict(color="#555555", width=0.8, linestyle="--", panel=2)),
-        (rsi_30, dict(color="#555555", width=0.8, linestyle="--", panel=2)),
-        (macd_hist, dict(type="bar", color=[GREEN if v >= 0 else RED for v in macd_hist], panel=3, ylabel="MACD", width=0.7)),
-        (macd_line, dict(color=BLUE, width=1.2, panel=3)),
-        (macd_signal, dict(color=ORANGE, width=1.2, panel=3)),
+        # Supertrend lines on main panel (panel 0) - they are automatically added to main by default
+        (s1u, dict(color=GREEN, width=2.5, panel=0)),
+        (s1d, dict(color=RED, width=2.5, panel=0)),
+        (s2u, dict(color=GREEN, width=1.5, linestyle="--", panel=0)),
+        (s2d, dict(color=RED, width=1.5, linestyle="--", panel=0)),
+        (s3u, dict(color=GREEN, width=1, linestyle=":", panel=0)),
+        (s3d, dict(color=RED, width=1, linestyle=":", panel=0)),
+        (pln, dict(color=BLUE, width=1.8, linestyle="--", panel=0)),
+        (pll, dict(color=ORANGE, width=1.8, linestyle="--", panel=0)),
+        (ph, dict(type="scatter", marker="v", markersize=50, color=RED, panel=0)),
+        (pl, dict(type="scatter", marker="^", markersize=50, color=GREEN, panel=0)),
+        # RSI panel (1)
+        (rv, dict(color=PURPLE, width=1.8, panel=1, ylabel="RSI")),
+        (rsi_70, dict(color="#555555", width=0.8, linestyle="--", panel=1)),
+        (rsi_30, dict(color="#555555", width=0.8, linestyle="--", panel=1)),
+        (rsi_50, dict(color="#777777", width=0.8, linestyle="-", panel=1)),  # middle line
+        # MACD panel (2)
+        (macd_hist, dict(type="bar", color=[GREEN if v >= 0 else RED for v in macd_hist], panel=2, ylabel="MACD", width=0.7)),
+        (macd_line, dict(color=BLUE, width=1.2, panel=2)),
+        (macd_signal, dict(color=ORANGE, width=1.2, panel=2)),
+        # Volume panel (3) - bar plot
+        (df['Volume'], dict(type="bar", color=vol_colors, panel=3, ylabel="Volume", width=0.8)),
     ]
     ap = [mpf.make_addplot(d, **kw) for d, kw in raw_ap if not (isinstance(d, pd.Series) and d.isna().all()) and not (isinstance(d, np.ndarray) and np.all(np.isnan(d)))]
 
     dd1, dd2, dd3 = d1.iloc[-1], d2.iloc[-1], d3.iloc[-1]
 
-    fig, axes = mpf.plot(df, type="candle", style=style, volume=True, addplot=ap, figsize=(26, 22), panel_ratios=(5, 1.2, 1.5, 1.5), tight_layout=True, xrotation=0, returnfig=True)
+    # Plot with volume=False (we add volume as an addplot)
+    fig, axes = mpf.plot(df, type="candle", style=style, volume=False, addplot=ap,
+                         figsize=(26, 22), panel_ratios=(5, 1.5, 1.5, 1.2),
+                         tight_layout=True, xrotation=0, returnfig=True)
     for a in axes: a.set_facecolor(BG)
-    ax = axes[0]
+    ax = axes[0]  # main candle
 
     # Fix price axis: disable scientific notation and format numbers
     ax.yaxis.set_major_formatter(plt.FuncFormatter(format_price))
-    # Set a sensible ylabel
     ax.set_ylabel("Price", color=TEXT, fontsize=10)
 
     # Volume axis formatting
-    axes[1].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}' if x >= 1e3 else f'{x:,.2f}'))
+    axes[3].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}' if x >= 1e3 else f'{x:,.2f}'))
 
     # Structure lines
     for i in range(len(df)):
@@ -304,15 +318,15 @@ def export_candles(json_file, output_file="chart.png"):
         st_lines.append(f"  {lbl}  {arr}  {'BULL' if dd == 1 else 'BEAR'}")
     panel_box(ax, 0.01, 0.98, st_lines, "SUPERTREND")
 
-    # RSI panel info
+    # RSI panel info (axes[1])
     rsi_now = rv.iloc[-1]
     rsi_clr = RED if rsi_now > 70 else GREEN if rsi_now < 30 else ORANGE
     rsi_lbl = "OVERBOUGHT" if rsi_now > 70 else "OVERSOLD" if rsi_now < 30 else "NEUTRAL"
-    axes[2].text(0.01, 0.92, f"  RSI(14): {rsi_now:.1f}  {rsi_lbl}", transform=axes[2].transAxes, fontsize=10, fontfamily="monospace",
+    axes[1].text(0.01, 0.92, f"  RSI(14): {rsi_now:.1f}  {rsi_lbl}", transform=axes[1].transAxes, fontsize=10, fontfamily="monospace",
                  va="top", color=rsi_clr, fontweight="bold")
-    axes[2].set_ylabel("RSI", color=TEXT, fontsize=10)
+    axes[1].set_ylabel("RSI", color=TEXT, fontsize=10)
 
-    # MACD panel info
+    # MACD panel info (axes[2])
     macd_now = macd_line.iloc[-1]
     signal_now = macd_signal.iloc[-1]
     hist_now = macd_hist.iloc[-1]
@@ -325,10 +339,10 @@ def export_candles(json_file, output_file="chart.png"):
             cross_lbl = "  [CROSSUP]"
         elif hist_now < 0 and prev_hist >= 0:
             cross_lbl = "  [CROSSDN]"
-    axes[3].text(0.01, 0.92, f"  MACD(12,26,9): {macd_now:.4f}  {macd_lbl}{cross_lbl}", transform=axes[3].transAxes, fontsize=10, fontfamily="monospace",
+    axes[2].text(0.01, 0.92, f"  MACD(12,26,9): {macd_now:.4f}  {macd_lbl}{cross_lbl}", transform=axes[2].transAxes, fontsize=10, fontfamily="monospace",
                  va="top", color=macd_clr, fontweight="bold")
-    axes[3].axhline(y=0, color="#555555", linewidth=0.8, linestyle="--")
-    axes[3].set_ylabel("MACD", color=TEXT, fontsize=10)
+    axes[2].axhline(y=0, color="#555555", linewidth=0.8, linestyle="--")
+    axes[2].set_ylabel("MACD", color=TEXT, fontsize=10)
 
     fig.savefig(output_file, dpi=600, bbox_inches="tight", facecolor=BG, pad_inches=0.3, pil_kwargs={"antialias": "best"})
     print(f"Saved: {output_file}")
